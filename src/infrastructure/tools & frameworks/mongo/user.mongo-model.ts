@@ -1,11 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose'
 import { hash, compare } from 'bcryptjs'
 import { BCRYPT_ROUNDS } from '../../../configs/global-config'
+import { userRole } from '../../../core/entities/user.entity'
 
-type userRole = 'ADMIN' | 'BOSS' | 'REGULAR'
+
 
 export interface IUSer extends Document {
-    id: string
     username: string
     password: string
     firstName: string | null
