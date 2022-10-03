@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import { createApp } from './app'
+import { HTTP_PORT, NODE_ENV } from './configs/global-config'
 import { MONGODB_URI } from './configs/mongo-config'
 import { logger } from './logger/prodLogger'
 ;(async () => {
@@ -16,8 +17,8 @@ import { logger } from './logger/prodLogger'
     // initializing webserver here:
     const app = createApp()
 
-    app.listen(3000, () => {
-        console.log('Listening on port 3000, running in dev')
+    app.listen(HTTP_PORT, () => {
+        logger.info(`Listening on port ${HTTP_PORT}, running in ${NODE_ENV}`)
     }).on('error', (error) => {
         logger.error(`Error while starting up: ${error}`)
         process.exit()
