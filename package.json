@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "./dist/server.js",
-  "type": "module",
   "scripts": {
     "start": "nodemon -L .",
     "test": "vitest --run --reporter verbose",
