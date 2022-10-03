@@ -1,14 +1,22 @@
 import e, { NextFunction, Request, Response } from 'express'
+import session, { Store } from 'express-session'
+import { SESSION_OPTIONS } from './configs/session-config'
 import { InvalidInputError } from './core/custom errors/InvalidInputError'
 import { usersRouter } from './infrastructure/routes'
 import { logger } from './logger/prodLogger'
 
-export const createApp = () => {
+export const createApp = (sessionStore: Store) => {
     const app = e()
 
-    // MIDDLEWARE:
+    // EXPRESS MIDDLEWARE:
     app.use(e.urlencoded({ extended: true }))
     app.use(e.json())
+
+    // SESSION MIDDLEWARE
+    app.use(session({
+        ...SESSION_OPTIONS,
+        store: sessionStore,
+    }))
 
     // JSON input error handler
     app.use(
