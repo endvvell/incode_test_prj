@@ -1,11 +1,17 @@
 import { Request, Response } from 'express'
 import { SESSION_NAME } from '../../configs/session-config'
+import { User } from '../../core/entities/user.entity'
 
 declare module 'express-session' {
     export interface SessionData {
         userId: string
         createdAt: number
     }
+}
+
+// this function exists only to allow us to create(and therefore validate) a new user obj asynchronously
+export const createNewUserObj = async (req: Request) => {
+    return new User({ ...req.body })
 }
 
 export const isLoggedIn = (req: Request) => {

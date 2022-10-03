@@ -4,8 +4,8 @@ export type userRole = 'ADMIN' | 'BOSS' | 'REGULAR'
 
 export class User {
     public id: string | null = null
-    public username: string | null = null
-    public password: string | null = null
+    public username: string = ''
+    public password: string = ''
     public firstName: string | null = null
     public lastName: string | null = null
     public role: userRole = 'REGULAR'
