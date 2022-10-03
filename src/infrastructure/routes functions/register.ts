@@ -21,7 +21,7 @@ export const registerUser = async (req: Request, res: Response) => {
         })
         await user.save()
 
-        logIn(req, user.toObject()._id)
+        logIn(req, <string>user.toObject()._id)
 
         res.status(200).json({
             status: 'success',
