@@ -1,0 +1,4 @@
+FROM mongo
+
+ENV MONGO_INITDB_ROOT_USERNAME=produser
+ENV MONGO_INITDB_ROOT_PASSWORD=topsecretpassword
