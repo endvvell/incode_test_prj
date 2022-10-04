@@ -8,15 +8,9 @@ import { logger } from './logger/prodLogger'
 export const createApp = (sessionStore: Store) => {
     const app = e()
 
-    // EXPRESS MIDDLEWARE:
+    // EXPRESS MIDDLEWARE
     app.use(e.urlencoded({ extended: true }))
     app.use(e.json())
-
-    // SESSION MIDDLEWARE
-    app.use(session({
-        ...SESSION_OPTIONS,
-        store: sessionStore,
-    }))
 
     // JSON input error handler
     app.use(
@@ -27,6 +21,14 @@ export const createApp = (sessionStore: Store) => {
                     .json({ status: 'failed', reason: 'Invalid JSON provided' })
             next()
         },
+    )
+
+    // SESSION MIDDLEWARE
+    app.use(
+        session({
+            ...SESSION_OPTIONS,
+            store: sessionStore,
+        }),
     )
 
     // ROUTERS
@@ -56,7 +58,7 @@ export const createApp = (sessionStore: Store) => {
         },
     )
 
-    // IN CASE 404 - NOT FOUND:
+    // IN CASE 404 - NOT FOUND
     app.all('*', (req, res) => {
         return res.status(404).send('404 - resource not found')
     })

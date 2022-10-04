@@ -3,8 +3,6 @@ import { hash, compare } from 'bcryptjs'
 import { BCRYPT_ROUNDS } from '../../../configs/global-config'
 import { userRole } from '../../../core/entities/user.entity'
 
-
-
 export interface IUSer extends Document {
     username: string
     password: string

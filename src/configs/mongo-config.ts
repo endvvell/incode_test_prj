@@ -7,4 +7,8 @@ export const {
     MONGODB_DATABASE = 'amazingnewdb-dev',
 } = process.env
 
-export const MONGODB_URI = `mongodb://${encodeURIComponent(MONGODB_USERNAME)}:${encodeURIComponent(MONGODB_PASSWORD)}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?authSource=admin`
+export const MONGODB_URI = `mongodb://${encodeURIComponent(
+    MONGODB_USERNAME,
+)}:${encodeURIComponent(
+    MONGODB_PASSWORD,
+)}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?authSource=admin`

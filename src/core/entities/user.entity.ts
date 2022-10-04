@@ -1,4 +1,5 @@
 import { checkEmpty } from '../../infrastructure/helpers/checkEmpty'
+import { InvalidInputError } from '../custom errors/InvalidInputError'
 
 export type userRole = 'ADMIN' | 'BOSS' | 'REGULAR'
 
@@ -44,9 +45,11 @@ export class User {
             username.trim().length > 32 ||
             !pattern
         ) {
-            throw new Error(
-                'Invalid username: must be at least 3 alphanumeric characters long - underscores(_), dots(.), and dashes(-) are allowed',
-            )
+            throw new InvalidInputError({
+                message:
+                    'Invalid username: must be at least 3 alphanumeric characters long - underscores(_), dots(.), and dashes(-) are allowed',
+                statusCode: 400,
+            })
         } else {
             return username
         }
@@ -58,12 +61,14 @@ export class User {
         if (
             !checkEmpty(password) ||
             password.trim().length < 8 ||
-            password.trim().length > 50 ||
+            password.trim().length > 80 ||
             !pattern
         ) {
-            throw new Error(
-                'Invalid password: must consist of at least 8 alphanumeric characters including 1 special character',
-            )
+            throw new InvalidInputError({
+                message:
+                    'Invalid password: must consist of at least 8 alphanumeric characters including 1 special character',
+                statusCode: 400,
+            })
         } else {
             return password
         }
@@ -71,7 +76,10 @@ export class User {
 
     validFirstName(value: string) {
         if (!checkEmpty(value) || value.trim().length > 100) {
-            throw new Error('Invalid value for the "first name" provided')
+            throw new InvalidInputError({
+                message: 'Invalid value for the "first name" provided',
+                statusCode: 400,
+            })
         } else {
             return value
         }
@@ -79,7 +87,10 @@ export class User {
 
     validLastName(value: string) {
         if (!checkEmpty(value) || value.trim().length > 100) {
-            throw new Error('Invalid value for the "last name" provided')
+            throw new InvalidInputError({
+                message: 'Invalid value for the "last name" provided',
+                statusCode: 400,
+            })
         } else {
             return value
         }
@@ -90,9 +101,12 @@ export class User {
             !checkEmpty(value) ||
             !['ADMIN', 'BOSS', 'REGULAR'].includes(value.trim().toUpperCase())
         ) {
-            throw new Error("Invalid value for the user's role provided")
+            throw new InvalidInputError({
+                message: "Invalid value for the user's role provided",
+                statusCode: 400,
+            })
         } else {
-            return value
+            return <Partial<userRole>>value.trim().toUpperCase()
         }
     }
 }

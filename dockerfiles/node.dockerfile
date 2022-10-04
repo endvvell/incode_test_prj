@@ -17,6 +17,6 @@ ENV MONGODB_HOST=127.0.0.1
 # ^^ if I were really deploying this app then the host would be some Atlas cluster link like "cluster0.hwjdmyt.mongodb.net", but since this is only a test project I'll just leave it as "localhost" 
 ENV MONGODB_PORT=27017
 ENV MONGODB_DATABASE=amazingnewdb-dev
-
+ENV REDIS_PASSWORD=secretredispassword
 
 CMD [ "npm", "start" ]

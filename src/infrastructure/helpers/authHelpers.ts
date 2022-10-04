@@ -1,10 +1,11 @@
-import { Request, Response } from 'express'
+import { NextFunction, Request, Response } from 'express'
 import { SESSION_NAME } from '../../configs/session-config'
 import { User } from '../../core/entities/user.entity'
 
 declare module 'express-session' {
     export interface SessionData {
         userId: string
+        userRole: string
         createdAt: number
     }
 }
@@ -22,14 +23,21 @@ export const isLoggedIn = (req: Request) => {
     }
 }
 
-export const logIn = (req: Request, userId: string) => {
-    req.session.userId = userId
+export const logIn = (req: Request, userId: string, userRole: string) => {
+    req.session.userId = userId.toString()
+    req.session.userRole = userRole.toString()
     req.session.createdAt = Date.now()
 }
 
-export const logOut = (req: Request, res: Response) => {
-    req.session.destroy((error) => {
-        if (error) throw new Error(`Error while logging out: ${error}`)
-        res.clearCookie(SESSION_NAME)
+export const logOut = async (req: Request, res: Response) => {
+    return new Promise((resolve, reject) => {
+        req.session.destroy((error) => {
+            if (error) {
+                reject(error)
+            } else {
+                res.clearCookie(SESSION_NAME)
+                resolve(res)
+            }
+        })
     })
 }

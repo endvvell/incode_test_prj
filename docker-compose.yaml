@@ -1,24 +1,43 @@
 version: '3.7'
 services:
-    webserver:
-        container_name: node_cont
-        build:
-          context: .
-          dockerfile: ./dockerfiles/node.dockerfile
-        ports:
-          - 3000:3000
-        depends_on:
-          - mongodb
 
-    mongodb:
-        container_name: mongodb_cont
-        build:
-          context: ./dockerfiles
-          dockerfile: mongodb.dockerfile
-        ports:
-          - 27017:27017
-        volumes:
-          - mongovolume:/data/db
+  webserver:
+    container_name: node_cont
+    build:
+      context: .
+      dockerfile: ./dockerfiles/node.dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      - MONGODB_HOST=mongodb
+      - REDIS_HOST=redis
+    depends_on:
+      - mongodb
+      - redis
+
+  mongodb:
+    container_name: mongodb_cont
+    build:
+      context: ./dockerfiles
+      dockerfile: mongodb.dockerfile
+    # image: mongo
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=devuser
+      - MONGO_INITDB_ROOT_PASSWORD=devpassword
+      - MONGO_INITDB_DATABASE=amazingnewdb-dev
+    volumes:
+      - mongovolume:/data/db
+
+  redis:
+    container_name: redis_cont
+    build:
+      context: ./dockerfiles
+      dockerfile: redis.dockerfile
+    ports:
+      - 6379:6379
+    command: 'redis-server --requirepass secretredispassword'
 
 volumes:
   mongovolume:
