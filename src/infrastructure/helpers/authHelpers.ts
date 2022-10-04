@@ -24,8 +24,8 @@ export const isLoggedIn = (req: Request) => {
 }
 
 export const logIn = (req: Request, userId: string, userRole: string) => {
-    req.session.userId = userId.toString()
-    req.session.userRole = userRole.toString()
+    req.session.userId = userId
+    req.session.userRole = userRole
     req.session.createdAt = Date.now()
 }
 

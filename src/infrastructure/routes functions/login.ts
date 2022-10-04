@@ -11,7 +11,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         })
 
         if (!foundUser || !(await foundUser.matchesPassword(userObj.password))) {
-            res.status(404).json({
+            return res.status(404).json({
                 status: 'failed',
                 reason: 'User not found or password is invalid',
             }) // could also just add one more "if" statement inside of this one so different status codes and reasons for the failure are sent out, but this approach seem to me to be more secure as it doesn't expose the fact of existence of the user – user convenience vs user security - because I'm feeling lazy, and because it appears my laziness can be rightly justified, I choose not to write one more "if" condition and instead spend a few more minutes writing exactly why the code is the way it is.
@@ -21,7 +21,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
                 <string>foundUser.toObject()._id,
                 <string>foundUser.toObject().role,
             )
-            res.status(200).json({
+            return res.status(200).json({
                 status: 'success',
                 message: 'You are now logged in!',
             })

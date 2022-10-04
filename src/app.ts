@@ -43,7 +43,7 @@ export const createApp = (sessionStore: Store) => {
             next: NextFunction,
         ) => {
             if (error instanceof InvalidInputError) {
-                logger.error(`Error while processing user's input: ${error.message}`)
+                // logger.error(`Error while processing user's input: ${error.message}`)
                 res.status(error.statusCode).json({
                     status: 'failed',
                     reason: error.message,

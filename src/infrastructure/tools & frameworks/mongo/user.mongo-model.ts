@@ -3,16 +3,17 @@ import { hash, compare } from 'bcryptjs'
 import { BCRYPT_ROUNDS } from '../../../configs/global-config'
 import { userRole } from '../../../core/entities/user.entity'
 
-export interface IUSer extends Document {
+export interface IUser extends Document {
     username: string
     password: string
     firstName: string | null
     lastName: string | null
     role: userRole
+    subordinates: IUser[] | null
     matchesPassword: (password: string) => Promise<boolean>
 }
 
-export const userMongoSchema = new Schema<IUSer>(
+export const userMongoSchema = new Schema<IUser>(
     {
         username: {
             type: String,
@@ -60,13 +61,17 @@ export const userMongoSchema = new Schema<IUSer>(
             enum: ['ADMIN', 'BOSS', 'REGULAR'],
             default: 'REGULAR',
         },
+        subordinates: {
+            type: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+            default: null,
+        }
     },
     {
         timestamps: true,
     },
 )
 
-userMongoSchema.pre<IUSer>('save', async function () {
+userMongoSchema.pre<IUser>('save', async function () {
     if (this.isModified('password')) {
         this.password = await hash(this.password, BCRYPT_ROUNDS)
     }
@@ -77,4 +82,16 @@ userMongoSchema.methods.matchesPassword = async function (password: string) {
     return passwordMatches
 }
 
-export const userMongoModel = mongoose.model<IUSer>('User', userMongoSchema)
+userMongoSchema.methods.goThroughSubs = async function (user: IUser) {
+    if (user.subordinates && user.subordinates.length !== 0 ) {
+        user.subordinates.forEach((sub) => {
+            if (sub.username !== this.username) {
+                sub.populate({path: 'subordinates', select: '-_id -__v -password'})
+                sub.id = sub._id.toString()
+                this.goThroughSubordinates(sub)
+            }
+        })
+    }
+}
+
+export const userMongoModel = mongoose.model<IUser>('User', userMongoSchema)
