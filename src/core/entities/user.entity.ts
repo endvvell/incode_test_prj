@@ -11,6 +11,7 @@ export class User {
     public lastName: string | null = null
     public role: userRole = 'REGULAR'
     public subordinates: string[] | null = null
+    public pathIgnoreRules: 'login' | 'register' | '' = ''
 
     constructor({
         ...inputObj
@@ -21,6 +22,7 @@ export class User {
         lastName: string | null
         role: userRole
         subordinates: string | string[] | null
+        pathIgnoreRules: 'login' | 'register'
     }) {
         if (inputObj.username) {
             this.username = this.validUsername(inputObj.username)
@@ -62,10 +64,12 @@ export class User {
                 this.role = this.validUserRole(inputObj.role)
             }
         } else {
-            throw new InvalidInputError({
-                message: "Invalid input: user's role not provided",
-                statusCode: 400,
-            })
+            if (inputObj.pathIgnoreRules !== 'login') {
+                throw new InvalidInputError({
+                    message: "Invalid input: user's role not provided",
+                    statusCode: 400,
+                })
+            }
         }
     }
 

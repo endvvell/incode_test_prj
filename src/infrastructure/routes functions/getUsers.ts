@@ -34,7 +34,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
                 { _id: req.session.userId, $rename: { _id: 'id' } },
                 '-password -__v',
             )
-
+            console.log('this is the found user', foundUser)
             if (foundUser) {
                 const userWithSubs = await foundUser.populateAllSubs()
                 return res.status(200).json({
@@ -47,6 +47,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
                     .json({ status: 'failed', reason: 'User not found' })
             }
         } catch (error) {
+            console.log('Went to error', error)
             next(error)
         }
     } else {
@@ -55,7 +56,8 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
                 {
                     _id: req.session.userId,
                 },
-                '-boss -password -__v',
+                '-boss -password -__v -subordinates',
+                // ^^ "REGULAR" users should not have any subordinates(empty list) anyway, but to prevent an edge-case of a potential real-life security breach "subordinates" are removed completely 
             )
 
             if (selfUser) {

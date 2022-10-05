@@ -14,7 +14,9 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                     statusCode: 400,
                 })
             }
+            
             // check both bosses exist
+
             const foundCurrentBoss = await userMongoModel.findOne(
                 {
                     _id: req.session.userId,
@@ -34,47 +36,48 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                 username: req.body.newboss,
             })
 
-            if (foundNewBoss) {
+            if (!foundNewBoss) {
+                throw new InvalidInputError({
+                    message: `No boss with username of "${req.body.newboss}" was found`,
+                    statusCode: 404,
+                })
+            } else {
                 try {
-                    // check if specified subordinates exist
+                    // check if specified subordinates exist on the current user
                     const subList = await checkSubsExist(
                         {
                             id: foundCurrentBoss._id,
+                            username: foundCurrentBoss.username,
                             role: foundCurrentBoss.role,
                             subordinates: req.body.subordinates,
                         },
                         true,
+                        foundNewBoss,
                     )
 
                     if (subList.length > 0) {
                         for (let id of subList) {
-                            // updating the "boss" field on a user
-                            const oldSubDoc = await userMongoModel.findByIdAndUpdate({ _id: id }, { boss: foundNewBoss._id })
-                            // updating new boss
-                            await userMongoModel.findByIdAndUpdate({ _id: foundNewBoss._id }, { $push: { subordinates: id } })
                             // updating the previous boss
-                            if (oldSubDoc && oldSubDoc.boss) {
-                                await userMongoModel.findByIdAndUpdate(
-                                    { _id: oldSubDoc.boss },
-                                    { $pull: { subordinates: oldSubDoc._id } },
-                                )
+                            const oldDoc = await userMongoModel.findOne({ _id: id })
+                            if (oldDoc) {
+                                await userMongoModel.updateOne({ _id: oldDoc.boss }, { $pull: { subordinates: oldDoc._id } })
                             }
+                            // updating the "boss" field on a user
+                            await userMongoModel.updateOne({ _id: id }, { boss: foundNewBoss._id })
+                            // updating new boss
+                            await userMongoModel.updateOne({ _id: foundNewBoss._id }, { $push: { subordinates: id } })
                         }
                     }
 
                     return res.status(200).json({
                         status: 'success',
-                        message: `Users ${req.body.subordinates.join(', ')} are now subordinates of "${req.body.newboss}"`,
+                        message: `The following users - ${req.body.subordinates.join(', ')} - are now subordinates of ${
+                            req.body.newboss
+                        }`,
                     })
                 } catch (error) {
-                    console.log('Caught here 2:', error)
                     next(error)
                 }
-            } else {
-                throw new InvalidInputError({
-                    message: `No boss with username of "${req.body.newboss}" was found`,
-                    statusCode: 404,
-                })
             }
         } else {
             return res.status(403).json({
@@ -83,7 +86,6 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
             })
         }
     } catch (error) {
-        console.log('Caught error here:', error)
         next(error)
     }
 }
