@@ -10,11 +10,6 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
                 { $rename: { _id: 'id' } },
                 '-password -__v',
             )
-            // .populate({
-            //     path: 'subordinates',
-            //     select: '-__v -password',
-            //     populate: { path: 'subordinates', select: '-__v -password' },
-            // })
 
             if (foundUsers) {
                 let allUsers: IUser[] = []
