@@ -9,8 +9,14 @@ export interface IUser extends Document {
     firstName: string | null
     lastName: string | null
     role: userRole
+    boss: IUser | null
     subordinates: IUser[] | null
     matchesPassword: (password: string) => Promise<boolean>
+    populateAllSubs: () => Promise<
+        IUser & {
+            _id: mongoose.Types.ObjectId
+        }
+    >
 }
 
 export const userMongoSchema = new Schema<IUser>(
@@ -61,10 +67,15 @@ export const userMongoSchema = new Schema<IUser>(
             enum: ['ADMIN', 'BOSS', 'REGULAR'],
             default: 'REGULAR',
         },
+        boss: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
         subordinates: {
             type: [{ type: Schema.Types.ObjectId, ref: 'User' }],
             default: null,
-        }
+        },
     },
     {
         timestamps: true,
@@ -82,16 +93,34 @@ userMongoSchema.methods.matchesPassword = async function (password: string) {
     return passwordMatches
 }
 
-userMongoSchema.methods.goThroughSubs = async function (user: IUser) {
-    if (user.subordinates && user.subordinates.length !== 0 ) {
-        user.subordinates.forEach((sub) => {
-            if (sub.username !== this.username) {
-                sub.populate({path: 'subordinates', select: '-_id -__v -password'})
-                sub.id = sub._id.toString()
-                this.goThroughSubordinates(sub)
+userMongoSchema.methods.populateAllSubs = async function (this: IUser) {
+    let subList: IUser[] = []
+    async function autoPopulate(parent: IUser) {
+        if (parent.subordinates && parent.subordinates.length !== 0) {
+            for (let sub of parent.subordinates!) {
+                // "!" - because "this.subordinates" above already checks if the "subordinates" list is empty, so by this point it is not.
+                // the "if" here is just to avoid infinite recursion in case "boss1 > boss2 > boss3 > boss1" that can be solved by tracking the usernames encountered after each iteration(could implement a binary(boss, regular) tree traversal algo, but it might take more time than I expected, so for now this "if" simply prevents further iterations if the loop is encountered)
+                if (sub._id !== parent._id) {
+                    const downsub = await userMongoModel.findOne<IUser>(
+                        {
+                            _id: sub._id,
+                        },
+                        '-password -__v',
+                    )
+                    if (downsub) {
+                        subList.push(downsub)
+                        await autoPopulate(downsub)
+                    }
+                }
             }
-        })
+        }
     }
-}
+    await autoPopulate(this)
 
+    const readyUser = this.toObject()
+
+    readyUser.subordinates = subList
+
+    return readyUser
+}
 export const userMongoModel = mongoose.model<IUser>('User', userMongoSchema)

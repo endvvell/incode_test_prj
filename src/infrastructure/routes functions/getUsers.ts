@@ -4,77 +4,82 @@ import { IUser, userMongoModel } from '../tools & frameworks/mongo/user.mongo-mo
 const goThroughSubordinates = (user: IUser) => {}
 
 export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
-    switch (req.session.userRole) {
-        case 'ADMIN':
-            try {
-                const foundUsers = await userMongoModel
-                    .find({ $rename: { _id: 'id' } }, '-password -__v')
-                    .populate({ path: 'subordinates', select: '-__v -password' })
+    if (req.session.userRole === 'ADMIN') {
+        try {
+            const foundUsers = await userMongoModel.find(
+                { $rename: { _id: 'id' } },
+                '-password -__v',
+            )
+            // .populate({
+            //     path: 'subordinates',
+            //     select: '-__v -password',
+            //     populate: { path: 'subordinates', select: '-__v -password' },
+            // })
 
-                if (foundUsers) {
-                    foundUsers.forEach((user) => {
-                        if (user.subordinates) {
-                        }
-                    })
-                    return res
-                        .status(200)
-                        .json({ status: 'success', data: foundUsers })
-                } else {
-                    return res
-                        .status(404)
-                        .json({ status: 'failed', reason: 'No users found' })
+            if (foundUsers) {
+                let allUsers: IUser[] = []
+
+                for (let user of foundUsers) {
+                    const populatedUser = await user.populateAllSubs()
+                    allUsers.push(populatedUser)
                 }
-            } catch (error) {
-                next(error)
+
+                return res.status(200).json({ status: 'success', data: allUsers })
+            } else {
+                return res
+                    .status(404)
+                    .json({ status: 'failed', reason: 'No users found' })
             }
-        case 'BOSS':
-            try {
-                const foundUser = await userMongoModel
-                    .findOne(
-                        { _id: req.session.userId, $rename: { _id: 'id' } },
-                        '-password -__v',
-                    )
-                    .populate({ path: 'subordinates', select: ' -__v -password' })
-                    
-                if (foundUser) {
-                    res.status(200).json({
-                        status: 'success',
-                        data: foundUser,
-                    })
-                } else {
-                    return res
-                        .status(404)
-                        .json({ status: 'failed', reason: 'User not found' })
-                }
-            } catch (error) {
-                next(error)
-            }
-        case 'REGULAR':
-        default:
-            console.log('fell through to default')
-            try {
-                const selfUser = await userMongoModel.findOne({
-                    _id: req.session.userId,
+        } catch (error) {
+            next(error)
+        }
+    } else if (req.session.userRole === 'BOSS') {
+        try {
+            const foundUser = await userMongoModel.findOne(
+                { _id: req.session.userId, $rename: { _id: 'id' } },
+                '-password -__v',
+            )
+
+            if (foundUser) {
+                const userWithSubs = await foundUser.populateAllSubs()
+                return res.status(200).json({
+                    status: 'success',
+                    data: userWithSubs,
                 })
-
-                if (selfUser) {
-                    const { password, __v, _id, ...readyUser } = selfUser.toObject()
-
-                    // readyUser.id = (<string>selfUser.toObject()._id).toString()
-                    res.status(200).json({
-                        status: 'success',
-                        data: {
-                            id: selfUser.toObject()._id,
-                            ...readyUser,
-                        },
-                    })
-                } else {
-                    return res
-                        .status(404)
-                        .json({ status: 'failed', reason: 'User not found' })
-                }
-            } catch (error) {
-                next(error)
+            } else {
+                return res
+                    .status(404)
+                    .json({ status: 'failed', reason: 'User not found' })
             }
+        } catch (error) {
+            next(error)
+        }
+    } else {
+        try {
+            const selfUser = await userMongoModel.findOne(
+                {
+                    _id: req.session.userId,
+                },
+                '-boss -password -__v',
+            )
+
+            if (selfUser) {
+                const { _id, ...readyUser } = selfUser.toObject()
+
+                return res.status(200).json({
+                    status: 'success',
+                    data: {
+                        id: selfUser.toObject()._id,
+                        ...readyUser,
+                    },
+                })
+            } else {
+                return res
+                    .status(404)
+                    .json({ status: 'failed', reason: 'User not found' })
+            }
+        } catch (error) {
+            next(error)
+        }
     }
 }

@@ -44,13 +44,13 @@ export const createApp = (sessionStore: Store) => {
         ) => {
             if (error instanceof InvalidInputError) {
                 // logger.error(`Error while processing user's input: ${error.message}`)
-                res.status(error.statusCode).json({
+                return res.status(error.statusCode).json({
                     status: 'failed',
                     reason: error.message,
                 })
             } else {
                 logger.error(`Error while processing a request: ${error}`)
-                res.status(500).json({
+                return res.status(500).json({
                     status: 'failed',
                     reason: 'Request failed due to a server error, please try again later',
                 })
@@ -59,7 +59,7 @@ export const createApp = (sessionStore: Store) => {
     )
 
     // IN CASE 404 - NOT FOUND
-    app.all('*', (req, res) => {
+    app.all('*', (req: Request, res: Response) => {
         return res.status(404).send('404 - resource not found')
     })
 

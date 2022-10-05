@@ -5,7 +5,7 @@ export const methodNotAllowed = (
     res: Response,
     next: NextFunction,
 ) => {
-    res.status(405).json({
+    return res.status(405).json({
         status: 'failed',
         message: 'REST method is not allowed for this path',
     })

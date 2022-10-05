@@ -5,20 +5,18 @@ import { User } from '../../core/entities/user.entity'
 import { createNewUserObj, logIn } from '../helpers/authHelpers'
 import { userMongoModel } from '../tools & frameworks/mongo/user.mongo-model'
 
-async function checkSubsExist(newUser: User) {
+const checkSubsExist = async (newUser: User) => {
     let subList: mongoose.Types.ObjectId[] = []
     if (newUser.role === 'BOSS') {
         // "!" - because if the "req.body.role" is "BOSS" then the validation for subordinates would be performed in the "createNewUserObj" function above, so "subordinates" are certain to be truthy here.
         for (let sub_username of newUser.subordinates!) {
-            console.log('Inside the sub loop', sub_username)
             const foundSub = await userMongoModel.findOne(
                 {
                     username: sub_username,
-                    $and: [{ role: { $ne: 'ADMIN' } }, { boss: { $eq: null } }],
+                    $and: [{ role: { $ne: 'ADMIN' } }], // { boss:  { $or: [{$eq: null}, '<"this" user's id>'] } } - I comment this out because I think it makes sense that a user's boss should be reassigned to a newly created one even if the user already has a boss
                 },
                 '_id',
             )
-            console.log('this is found sub', foundSub)
             if (!foundSub) {
                 throw new InvalidInputError({
                     message: `Invalid value for subordinate: '${sub_username}' - no such user with subordinate role found or user already has a different boss`,
@@ -31,6 +29,10 @@ async function checkSubsExist(newUser: User) {
         return subList
     }
 }
+
+// const checkSubRank = async (subList: Awaited<ReturnType<typeof checkSubsExist>>) => {
+//     // boss1 -> boss2 -> boss3 -> boss1 - boss3 cannot be a boss of boss 1 if boss3 is somewhere in the subordinate chain under boss1
+// }
 
 export const registerUser = async (
     req: Request,
@@ -47,26 +49,57 @@ export const registerUser = async (
                 .status(409)
                 .json({ status: 'failed', reason: 'Username is taken' })
         } else {
-            const subList = await checkSubsExist(newUser)
+            const subList = (await checkSubsExist(newUser)) || []
+            // await checkSubRank(subList)
 
-            console.log('This is sublist:', subList)
-            const user = new userMongoModel({
+            let createdUser = new userMongoModel({
                 ...newUser,
                 subordinates: subList || null,
             })
-            await user.save()
 
-            logIn(req, <string>user.toObject()._id, <string>user.toObject().role)
+            if (subList) {
+                for (let id of subList) {
+                    // updating the "boss" field on a user
+                    const oldSubDoc = await userMongoModel.findByIdAndUpdate(
+                        { _id: id },
+                        { boss: createdUser._id },
+                    )
+                    if (oldSubDoc && oldSubDoc.boss) {
+                        // updating the previous boss
+                        await userMongoModel.findByIdAndUpdate(
+                            { _id: oldSubDoc.boss },
+                            { $pull: { subordinates: oldSubDoc._id } },
+                        )
+                    }
+                }
+            }
 
-            const { password, __v, _id, ...readyUser } = user.toObject()
+            logIn(
+                req,
+                <string>createdUser.toObject()._id,
+                <string>createdUser.toObject().role,
+            )
 
-            return res.status(200).json({
-                status: 'success',
-                data: {
-                    id: user.toObject()._id,
-                    ...readyUser,
-                },
-            })
+            if (createdUser.role === 'BOSS') {
+                createdUser = await (await createdUser.save()).populateAllSubs()
+                const { password, __v, ...readyUser } = createdUser
+                return res.status(200).json({
+                    status: 'success',
+                    data: {
+                        ...readyUser,
+                    },
+                })
+            } else {
+                await createdUser.save()
+                const { password, __v, ...readyUser } = createdUser.toObject()
+
+                return res.status(200).json({
+                    status: 'success',
+                    data: {
+                        ...readyUser,
+                    },
+                })
+            }
         }
     } catch (error) {
         next(error)

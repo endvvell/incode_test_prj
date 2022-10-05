@@ -1,5 +1,5 @@
 export const {
-    // the defaults here are the same as in node.dockerfile to make sure all fields have a value assigned to them
+    // the defaults here are the same as in node.dockerfile only to make sure all fields have a value assigned to them
     MONGODB_USERNAME = 'devuser',
     MONGODB_PASSWORD = 'devpassword',
     MONGODB_HOST = '127.0.0.1',
@@ -12,3 +12,5 @@ export const MONGODB_URI = `mongodb://${encodeURIComponent(
 )}:${encodeURIComponent(
     MONGODB_PASSWORD,
 )}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?authSource=admin`
+
+// mongosh mongodb://devuser:devpassword@127.0.0.1:27017/amazingnewdb-dev?authSource=admin
