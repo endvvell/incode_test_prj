@@ -1,29 +1,30 @@
-import mongoose, { Document, Schema } from 'mongoose'
-import { hash, compare } from 'bcryptjs'
-import { BCRYPT_ROUNDS } from '../../../configs/global-config'
-import { userRole } from '../../../core/entities/user.entity'
-import { logger } from '../../../logger/prodLogger'
+import mongoose, { Document, Schema } from 'mongoose';
+import { hash, compare } from 'bcryptjs';
+import { BCRYPT_ROUNDS } from '../../../configs/global-config';
+import { userRole } from '../../../core/entities/user.entity';
+import { logger } from '../../../logger/prodLogger';
 
 export interface IUser extends Document {
-    username: string
-    password: string
-    firstName: string | null
-    lastName: string | null
-    role: userRole
-    boss: IUser | null
-    subordinates: IUser[]
-    matchesPassword: (password: string) => Promise<boolean>
+    username: string;
+    password: string;
+    firstName: string | null;
+    lastName: string | null;
+    role: userRole;
+    boss: IUser | null;
+    subordinates: IUser[];
+    matchesPassword: (password: string) => Promise<boolean>;
     populateAllSubs: () => Promise<
         IUser & {
-            _id: mongoose.Types.ObjectId
+            _id: mongoose.Types.ObjectId;
         }
-    >
+    >;
     populateAllSubsIds: () => Promise<
         IUser &
             {
-                _id: mongoose.Types.ObjectId
+                _id: mongoose.Types.ObjectId;
             }[]
-    >
+    >;
+    adjustRole: () => Promise<void>;
 }
 
 export const userMongoSchema = new Schema<IUser>(
@@ -37,8 +38,8 @@ export const userMongoSchema = new Schema<IUser>(
             minlength: [3, 'Username must be longer than 3 characters'],
             validate: {
                 validator: (username: string) => {
-                    const pattern = /^[\p{sc=Latn}\p{Nd}_.-]*$/u
-                    return pattern.test(username)
+                    const pattern = /^[\p{sc=Latn}\p{Nd}_.-]*$/u;
+                    return pattern.test(username);
                 },
                 message:
                     'Invalid value for username provided: must be at least 3 alphanumeric characters long - underscores, dots, and dashes are allowed',
@@ -49,8 +50,8 @@ export const userMongoSchema = new Schema<IUser>(
             required: [true, 'Password is required'],
             validate: {
                 validator: (password: string) => {
-                    const pattern = /^(?=.*[!@#$%^&*.])(?=.*[A-z]).*$/u
-                    return pattern.test(password)
+                    const pattern = /^(?=.*[!@#$%^&*.])(?=.*[A-z]).*$/u;
+                    return pattern.test(password);
                 },
                 message: 'Incomplete password',
             },
@@ -87,68 +88,69 @@ export const userMongoSchema = new Schema<IUser>(
     {
         timestamps: true,
     },
-)
+);
 
+// Hashes the password
 userMongoSchema.pre<IUser>('save', async function () {
     if (this.isModified('password')) {
-        this.password = await hash(this.password, BCRYPT_ROUNDS)
+        this.password = await hash(this.password, BCRYPT_ROUNDS);
     }
-})
+});
 
-userMongoSchema.post<IUser>('updateOne', { document: true, query: false }, async function () {
-    console.log('this is the "this" inside middleware', this)
-    console.log('and this is "this"', this)
-    if (this.subordinates.length === 0 && this.role === 'BOSS') {
-        console.log('Firing "make regular" middleware on', this.username)
-        this.role = 'REGULAR'
-        await this.save()
-    } else if (this.subordinates.length > 0 && this.role === 'REGULAR') {
-        console.log('Firing "make boss" middleware on', this.username)
-        this.role = 'BOSS'
-        await this.save()
-    }
-})
-
+// Checks user's password against the hashed password
 userMongoSchema.methods.matchesPassword = async function (password: string) {
-    const passwordMatches = await compare(password, this.password)
-    return passwordMatches
-}
+    const passwordMatches = await compare(password, this.password);
+    return passwordMatches;
+};
 
+// Changes user's role if a user gets at least one subordinate or if the user no longer has any subordinates
+userMongoSchema.methods.adjustRole = async function (this: IUser) {
+    if (this.subordinates.length === 0 && this.role === 'BOSS') {
+        await userMongoModel.findByIdAndUpdate({ _id: this._id }, { role: 'REGULAR' });
+    } else if (this.subordinates.length > 0 && this.role === 'REGULAR') {
+        await userMongoModel.findByIdAndUpdate({ _id: this._id }, { role: 'BOSS' });
+    }
+};
+
+// Populates all subordinates recursively
 userMongoSchema.methods.populateAllSubs = async function (this: IUser) {
-    let subList: IUser[] = []
-    let idsList: mongoose.Types.ObjectId[] = []
+    let subList: IUser[] = [];
+    let idsList: mongoose.Types.ObjectId[] = [];
+    let rootId = this._id;
     async function autoPopulate(parent: IUser) {
         if (parent.subordinates && parent.subordinates.length !== 0) {
             for (let sub of parent.subordinates!) {
                 // "!" - because "this.subordinates" above already checks if the "subordinates" list is empty, so by this point it is not.
                 // the "if" here is to avoid infinite recursion in case "boss1 > boss2 > boss3 > boss1", which should never(ideally) be a case in the first place due to "checkSubsExist" function implemented in the "change-boss" and "register" paths, but in case it is ever to occur this "if" will prevent it. Could also log such a case to errors.log, but that would introduce another O(n) operation in an already expensive function. So, considering that this edge-case is never supposed to occur in the first place I won't place a logger here.
-                if (sub._id !== parent._id || !idsList.includes(sub._id)) {
+                if (sub._id.toString() !== parent._id.toString() && sub._id.toString() !== rootId.toString()) {
                     const downsub = await userMongoModel.findOne<IUser>(
                         {
                             _id: sub._id,
                         },
                         '-password -__v',
-                    )
+                    );
                     if (downsub) {
-                        subList.push(downsub)
-                        idsList.push(downsub._id)
-                        await autoPopulate(downsub)
+                        // !(idsList.length > 5)
+                        subList.push(downsub);
+                        idsList.push(downsub._id);
+                        await autoPopulate(downsub);
                     }
                 }
             }
         }
     }
-    await autoPopulate(this)
+    await autoPopulate(this);
 
-    const readyUser = this.toObject()
+    const readyUser = this.toObject();
 
-    readyUser.subordinates = subList
+    readyUser.subordinates = subList;
 
-    return readyUser
-}
+    return readyUser;
+};
 
+// Populates all subordinates' ids recursively
 userMongoSchema.methods.populateAllSubsIds = async function (this: IUser) {
-    let subList: IUser[] = []
+    let subList: IUser[] = [];
     async function autoPopulate(parent: IUser) {
         if (parent.subordinates && parent.subordinates.length !== 0) {
             for (let sub of parent.subordinates!) {
@@ -158,17 +160,17 @@ userMongoSchema.methods.populateAllSubsIds = async function (this: IUser) {
                             _id: sub._id,
                         },
                         '-password -__v',
-                    )
+                    );
                     if (downsub) {
-                        subList.push(downsub._id)
-                        await autoPopulate(downsub)
+                        subList.push(downsub._id);
+                        await autoPopulate(downsub);
                     }
                 }
             }
         }
     }
-    await autoPopulate(this)
-    return subList
-}
+    await autoPopulate(this);
+    return subList;
+};
 
-export const userMongoModel = mongoose.model<IUser>('User', userMongoSchema)
+export const userMongoModel = mongoose.model<IUser>('User', userMongoSchema);

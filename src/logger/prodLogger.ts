@@ -1,4 +1,4 @@
-import winston from 'winston'
+import winston from 'winston';
 
 export const buildLogger = () => {
     const logger = winston.createLogger({
@@ -22,9 +22,9 @@ export const buildLogger = () => {
             }),
             new winston.transports.Console(),
         ],
-    })
+    });
 
-    return logger
-}
+    return logger;
+};
 
-export const logger = buildLogger()
+export const logger = buildLogger();

@@ -1,0 +1,10 @@
+
+
+
+
+
+
+
+
+User session – stored in Redis, the frontend only receives a "Secure" cookie (when in prod, otherwise, when running in dev, cookie is not sent over HTTPS and so can be read by any client).
+

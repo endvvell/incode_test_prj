@@ -1,7 +1,7 @@
 export function checkEmpty(string: string): boolean {
     if (string.trim().length === 0) {
-        return false
+        return false;
     } else {
-        return true
+        return true;
     }
 }
