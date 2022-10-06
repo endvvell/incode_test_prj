@@ -18,12 +18,7 @@ export interface IUser extends Document {
             _id: mongoose.Types.ObjectId;
         }
     >;
-    populateAllSubsIds: () => Promise<
-        IUser &
-            {
-                _id: mongoose.Types.ObjectId;
-            }[]
-    >;
+    populateAllSubsIds: () => Promise<mongoose.Types.ObjectId[]>;
     adjustRole: () => Promise<void>;
 }
 
@@ -116,7 +111,7 @@ userMongoSchema.methods.adjustRole = async function (this: IUser) {
 userMongoSchema.methods.populateAllSubs = async function (this: IUser) {
     let subList: IUser[] = [];
     let idsList: mongoose.Types.ObjectId[] = [];
-    let rootId = this._id;
+    let rootId: mongoose.Types.ObjectId = this._id;
     async function autoPopulate(parent: IUser) {
         if (parent.subordinates && parent.subordinates.length !== 0) {
             for (let sub of parent.subordinates!) {
@@ -151,10 +146,11 @@ userMongoSchema.methods.populateAllSubs = async function (this: IUser) {
 // Populates all subordinates' ids recursively
 userMongoSchema.methods.populateAllSubsIds = async function (this: IUser) {
     let subList: IUser[] = [];
+    let rootId: mongoose.Types.ObjectId = this._id;
     async function autoPopulate(parent: IUser) {
         if (parent.subordinates && parent.subordinates.length !== 0) {
             for (let sub of parent.subordinates!) {
-                if (sub._id !== parent._id || !subList.includes(sub._id)) {
+                if (sub._id.toString() !== parent._id.toString() && sub._id.toString() !== rootId.toString()) {
                     const downsub = await userMongoModel.findOne<IUser>(
                         {
                             _id: sub._id,

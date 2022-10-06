@@ -1,61 +1,50 @@
 import { NextFunction, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { InvalidInputError } from '../../core/custom errors/InvalidInputError';
-import { checkSubsExist, createNewUserObj, logIn } from '../helpers/authHelpers';
+import { createNewUserObj, logIn } from '../helpers/authHelpers';
+import { checkProperSubordination, IEndResult } from '../helpers/checkSubordination';
 import { IUser, userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
 
-// const checkSubRank = async (subList: Awaited<ReturnType<typeof checkSubsExist>>) => {
-//     // boss1 -> boss2 -> boss3 -> boss1 - boss3 cannot be a boss of boss 1 if boss3 is somewhere in the subordinate chain under boss1
-// }
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // error handling is done inside of encapsulating routes error handler in "app.ts", so if this is to fail, that error handler will catch the error
+        // validate input data, create a model based on it
         const newUser = await createNewUserObj(req, 'register');
+
+        // check if user with duplicate data already exists in db
         const foundUser = await userMongoModel.exists({ username: newUser.username });
 
         if (foundUser) {
             return res.status(409).json({ status: 'failed', reason: 'Username is taken' });
         } else {
-            const subList = (await checkSubsExist(newUser, false)) || [];
-            // await checkSubRank(subList)
+            let checkList: IEndResult = (await checkProperSubordination(newUser))
 
-            let bossToBeAssigned: IUser | null = null;
-            if (req.body.role.toUpperCase() === 'REGULAR' && req.body.boss) {
-                // check if the boss subordinates
-                const foundBoss = await userMongoModel.findOne({ username: req.body.boss });
-                if (foundBoss) {
-                    bossToBeAssigned = foundBoss;
-                } else {
-                    throw new InvalidInputError({
-                        message: `Didn't find a boss with a username of "${req.body.boss}"`,
-                        statusCode: 400,
-                    });
-                }
-            }
+            // create new user with items from checkList
             let createdUser = new userMongoModel({
                 ...newUser,
-                boss: bossToBeAssigned?._id || null,
-                subordinates: subList || null,
+                boss: checkList.boss || null,
+                subordinates: checkList.directSubs || null,
             });
 
-            if (bossToBeAssigned && createdUser.boss === bossToBeAssigned._id) {
-                bossToBeAssigned.subordinates.push(createdUser._id);
-                bossToBeAssigned.save();
+            // if a boss was specified, push new user into boss' subordinates
+            if (checkList.boss && createdUser.boss === checkList.boss._id) {
+                checkList.boss.subordinates.push(createdUser._id);
+                checkList.boss.save();
             }
 
-            if (subList.length > 0) {
-                for (let id of subList) {
-                    // updating the "boss" field on a user
-                    const oldSubDoc = await userMongoModel.findByIdAndUpdate({ _id: id }, { boss: createdUser._id });
-                    if (oldSubDoc && oldSubDoc.boss) {
-                        // updating the previous boss
-                        await userMongoModel.findByIdAndUpdate(
-                            { _id: oldSubDoc.boss },
-                            { $pull: { subordinates: oldSubDoc._id } },
-                        );
-                    }
-                }
-            }
+            // if (checkList.subList && checkList.subList.length > 0) {
+            //     for (let user of checkList.subList) {
+            //         // updating the "boss" field on a user
+            //         const oldSubDoc = await userMongoModel.findByIdAndUpdate({ _id: user._id }, { boss: createdUser._id });
+            //         if (oldSubDoc && oldSubDoc.boss) {
+            //             // updating the previous boss
+            //             await userMongoModel.findByIdAndUpdate(
+            //                 { _id: oldSubDoc.boss },
+            //                 { $pull: { subordinates: oldSubDoc._id } },
+            //             );
+            //         }
+            //     }
+            // }
 
             logIn(req, <string>createdUser.toObject()._id, <string>createdUser.toObject().role);
 

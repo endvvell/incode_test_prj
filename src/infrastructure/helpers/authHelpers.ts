@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 import { SESSION_NAME } from '../../configs/session-config';
 import { InvalidInputError } from '../../core/custom errors/InvalidInputError';
 import { User } from '../../core/entities/user.entity';
@@ -12,48 +12,6 @@ declare module 'express-session' {
         createdAt: number;
     }
 }
-
-export const checkSubsExist = async (currentBossUser: Partial<User>, checkBossRelation: boolean, newBossUser?: IUser) => {
-    let subList: mongoose.Types.ObjectId[] = [];
-    const recursiveSubordinates = await (
-        await userMongoModel.findOne({ username: currentBossUser.username })
-    )?.populateAllSubsIds();
-
-    if (currentBossUser.role === 'BOSS' || currentBossUser.role === 'ADMIN') {
-        let customQuery: mongoose.FilterQuery<IUser>[] =
-            checkBossRelation && currentBossUser.role === 'ADMIN'
-                ? [{ role: { $ne: 'ADMIN' } }]
-                : checkBossRelation
-                ? [{ role: { $ne: 'ADMIN' } }, { _id: { $in: recursiveSubordinates } }] // "if user specified subordinate is not an admin and IS in the user's subordinates(because bosses should only be able to alter THEIR subordinates)"
-                : [{ role: { $ne: 'ADMIN' } }];
-
-
-        for (let sub_username of currentBossUser.subordinates!) {
-            // ^^ "!" - because if the "req.body.role" is "BOSS" then the validation for subordinates would be performed in the "createNewUserObj" function above, so "subordinates" are certain to be truthy here.
-            const foundSub = await userMongoModel.findOne({
-                username: sub_username,
-                $and: customQuery,
-            });
-            if (!foundSub) {
-                throw new InvalidInputError({
-                    message: `Invalid value for subordinate: '${sub_username}' - no such user with a subordinate role found or user already has a different boss`,
-                    statusCode: 404,
-                });
-            } else {
-                if (newBossUser && foundSub.subordinates.includes(newBossUser._id)) {
-                    throw new InvalidInputError({
-                        message: `A subordinate of ${foundSub.username} (which is ${newBossUser.username}) cannot be the boss of ${foundSub.username}`,
-                        statusCode: 400,
-                    });
-                }
-                subList.push(foundSub._id);
-            }
-        }
-        return subList;
-    } else {
-        return [];
-    }
-};
 
 export const createNewUserObj = async (req: Request, path: 'login' | 'register') => {
     if (path === 'login') {

@@ -19,4 +19,6 @@ ENV MONGODB_PORT=27017
 ENV MONGODB_DATABASE=amazingnewdb-dev
 ENV REDIS_PASSWORD=secretredispassword
 
+# when running tests
+# CMD [ "npm", "run", "test:watch" ]
 CMD [ "npm", "start" ]

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { InvalidInputError } from '../../core/custom errors/InvalidInputError';
-import { checkSubsExist } from '../helpers/authHelpers';
+import { logger } from '../../logger/prodLogger';
+import { checkProperSubordination } from '../helpers/checkSubordination';
 import { userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
 
 export const changeBoss = async (req: Request, res: Response, next: NextFunction) => {
@@ -17,6 +18,7 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
 
             // check if both bosses specified by the user exist:
             const foundCurrentBoss = await userMongoModel.findOne(
+                // this could also find an admin user
                 {
                     _id: req.session.userId,
                 },
@@ -42,43 +44,71 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                 });
             } else {
                 try {
-                    // check if specified subordinates exist on the current boss
-                    const subList = await checkSubsExist(
+                    // check if subordination is preserved
+                    const checkList = await checkProperSubordination(
                         {
                             id: foundCurrentBoss._id,
                             username: foundCurrentBoss.username,
                             role: foundCurrentBoss.role,
                             subordinates: req.body.subordinates,
                         },
-                        true,
                         foundNewBoss,
                     );
 
-                    if (subList.length > 0) {
-                        for (let id of subList) {
-                            // removing subordinate from the previous boss
-                            const oldSubDoc = await userMongoModel.findOne({ _id: id });
+                    if (checkList.directSubs) {
+                        for (let user_id of checkList.directSubs) {
+                            const oldSubDoc = await userMongoModel.findOne({ _id: user_id });
+                            
                             if (oldSubDoc) {
-                                await (
-                                    await userMongoModel.findByIdAndUpdate(
-                                        { _id: oldSubDoc.boss },
-                                        { $pull: { subordinates: oldSubDoc._id } },
-                                        { new: true },
-                                    )
-                                )?.adjustRole();
-                            }
-                            // updating the "boss" field on a subordinate
-                            await (
-                                await userMongoModel.findByIdAndUpdate({ _id: id }, { boss: foundNewBoss._id }, { new: true })
-                            )?.adjustRole();
-                            // updating new boss to contain a new subordinate
-                            await (
-                                await userMongoModel.findByIdAndUpdate(
-                                    { _id: foundNewBoss._id },
-                                    { $push: { subordinates: id } },
+
+                                // removing subordinate from its previous boss
+                                const foundOldBoss = await userMongoModel.findByIdAndUpdate(
+                                    { _id: oldSubDoc.boss },
+                                    { $pull: { subordinates: oldSubDoc._id } },
                                     { new: true },
                                 )
-                            )?.adjustRole();
+                                if (foundOldBoss) {
+                                    await (
+                                        foundOldBoss                                    
+                                    ).adjustRole();
+                                } else {
+                                    logger.error(`Error while updating the old boss of user ${oldSubDoc.username}`)
+                                    return res.status(500).json({status: 'failed', reason: `Error while updating the old boss of user ${oldSubDoc.username}`})
+                                }
+
+                                // updating the "boss" field on a subordinate
+                                const newUserBossField = await userMongoModel.findByIdAndUpdate(
+                                    { _id: user_id },
+                                    { boss: foundNewBoss._id },
+                                    { new: true },
+                                )
+                                if (newUserBossField) {
+                                    await (
+                                        newUserBossField
+                                    ).adjustRole();
+                                } else {
+                                    logger.error(`Error while updating user ${oldSubDoc.username} with a new boss`)
+                                    return res.status(500).json({status: 'failed', reason: `Error while updating user ${oldSubDoc.username} with a new boss`})
+                                }
+
+                                // updating new boss to contain a new subordinate
+                                const newBoss = await userMongoModel.findByIdAndUpdate(
+                                    { _id: foundNewBoss._id },
+                                    { $push: { subordinates: user_id } },
+                                    { new: true },
+                                )
+                                if (newBoss) {
+                                    await (
+                                        newBoss
+                                    ).adjustRole();
+                                } else {
+                                    logger.error(`Error while updating new boss of user ${oldSubDoc.username}`)
+                                    return res.status(500).json({status: 'failed', reason: `Error while updating new boss of user ${oldSubDoc.username}`})
+                                }
+                            } else {
+                                logger.error(`Error while looking up subordinates of ${foundCurrentBoss.username}`)
+                                return res.status(500).json({status: 'failed', reason: `Error while looking up subordinates of the ${foundCurrentBoss.username}`})
+                            }
                         }
                     }
 

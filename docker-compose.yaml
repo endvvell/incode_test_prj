@@ -6,6 +6,9 @@ services:
     build:
       context: .
       dockerfile: ./dockerfiles/node.dockerfile
+    volumes:
+      - ./dist:/app/dist
+      - /app/node_modules
     ports:
       - 3000:3000
     environment:
