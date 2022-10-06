@@ -8,6 +8,8 @@ RUN npm install
 
 COPY ./dist ./dist
 
+COPY ./src/tests ./src/tests
+
 EXPOSE 3000
 
 # the values assigned with "=" are only defaults(that can be overwritten - which I would usually do when deploying in production, therefore the defaults for the project are set to "dev" values, since I expect them to be overwritten with different ones in prod
@@ -19,6 +21,5 @@ ENV MONGODB_PORT=27017
 ENV MONGODB_DATABASE=amazingnewdb-dev
 ENV REDIS_PASSWORD=secretredispassword
 
-# when running tests
-# CMD [ "npm", "run", "test:watch" ]
-CMD [ "npm", "start" ]
+ENTRYPOINT [ "npm" ]
+CMD [ "start" ]

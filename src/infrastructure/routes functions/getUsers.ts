@@ -47,12 +47,11 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
             );
 
             if (selfUser) {
-                const { _id, ...readyUser } = selfUser.toObject();
+                const { ...readyUser } = selfUser.toObject();
 
                 return res.status(200).json({
                     status: 'success',
                     data: {
-                        id: selfUser.toObject()._id,
                         ...readyUser,
                     },
                 });

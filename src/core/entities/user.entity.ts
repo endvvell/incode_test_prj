@@ -10,7 +10,7 @@ export class User {
     public firstName: string | null = null;
     public lastName: string | null = null;
     public role: userRole = 'REGULAR';
-    public boss: string | null = null
+    public boss: string | null = null;
     public subordinates: string[] | null = null;
     public pathIgnoreRules: 'login' | 'register' | '' = '';
 
@@ -21,7 +21,7 @@ export class User {
         password: string;
         firstName: string | null;
         lastName: string | null;
-        boss: string | null
+        boss: string | null;
         role: userRole;
         subordinates: string | string[] | null;
         pathIgnoreRules: 'login' | 'register';
@@ -49,7 +49,7 @@ export class User {
             this.lastName = this.validLastName(inputObj.lastName);
         }
         if (inputObj.boss) {
-            this.boss = this.validUsername(inputObj.boss)
+            this.boss = this.validUsername(inputObj.boss);
         }
         if (inputObj.role) {
             if (inputObj.role.toUpperCase() === 'BOSS') {
@@ -79,8 +79,7 @@ export class User {
         const pattern = /^[\p{sc=Latn}\p{Nd}_.-]*$/u.test(username);
         if (!checkEmpty(username) || username.trim().length < 3 || username.trim().length > 32 || !pattern) {
             throw new InvalidInputError({
-                message:
-                    `Invalid username (${username}): must be at least 3 alphanumeric characters long - underscores(_), dots(.), and dashes(-) are allowed`,
+                message: `Invalid username (${username}): must be at least 3 alphanumeric characters long - underscores(_), dots(.), and dashes(-) are allowed`,
                 statusCode: 400,
             });
         } else {

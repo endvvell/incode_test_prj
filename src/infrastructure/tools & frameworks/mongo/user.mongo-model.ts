@@ -137,7 +137,6 @@ userMongoSchema.methods.populateAllSubs = async function (this: IUser) {
     await autoPopulate(this);
 
     const readyUser = this.toObject();
-
     readyUser.subordinates = subList;
 
     return readyUser;
