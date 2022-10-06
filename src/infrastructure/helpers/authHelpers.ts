@@ -1,9 +1,6 @@
-import { NextFunction, Request, Response } from 'express';
-import mongoose from 'mongoose';
+import { Request, Response } from 'express';
 import { SESSION_NAME } from '../../configs/session-config';
-import { InvalidInputError } from '../../core/custom errors/InvalidInputError';
 import { User } from '../../core/entities/user.entity';
-import { IUser, userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
 
 declare module 'express-session' {
     export interface SessionData {

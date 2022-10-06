@@ -1,8 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { hash, compare } from 'bcryptjs';
-import { BCRYPT_ROUNDS } from '../../../configs/global-config';
-import { userRole } from '../../../core/entities/user.entity';
-import { logger } from '../../../logger/prodLogger';
+import { BCRYPT_ROUNDS } from '../../configs/global-config';
+import { userRole } from '../../core/entities/user.entity';
 
 export interface IUser extends Document {
     username: string;

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { IUser, userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
+import { IUser, userMongoModel } from '../tools & frameworks/user.mongo-model';
 
 export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
     if (req.session.userRole === 'ADMIN') {

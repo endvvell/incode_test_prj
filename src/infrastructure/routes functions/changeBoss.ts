@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { InvalidInputError } from '../../core/custom errors/InvalidInputError';
 import { logger } from '../../logger/prodLogger';
 import { checkProperSubordination } from '../helpers/checkSubordination';
-import { userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
+import { userMongoModel } from '../tools & frameworks/user.mongo-model';
 
 export const changeBoss = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -16,9 +16,9 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                 });
             }
 
-            // check if both bosses specified by the user exist:
+            // check if both bosses specified by the user exist
             const foundCurrentBoss = await userMongoModel.findOne(
-                // this could also find an admin user
+                // this could also find an admin user if user is logging in as admin
                 {
                     _id: req.session.userId,
                 },
@@ -44,7 +44,7 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                 });
             } else {
                 try {
-                    // check if subordination is preserved
+                    // check if subordination is properly preserved
                     const checkList = await checkProperSubordination(
                         {
                             id: foundCurrentBoss._id,
@@ -55,9 +55,8 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                         foundNewBoss,
                     );
 
-
-                    console.log('went past the above')
                     if (checkList.directSubs) {
+                        // if any subordinates where found
                         for (let user_id of checkList.directSubs) {
                             const oldSubDoc = await userMongoModel.findOne({ _id: user_id });
 
@@ -72,12 +71,10 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                                     await foundOldBoss.adjustRole();
                                 } else {
                                     logger.error(`Error while updating the old boss of user ${oldSubDoc.username}`);
-                                    return res
-                                        .status(500)
-                                        .json({
-                                            status: 'failed',
-                                            reason: `Error while updating the old boss of user ${oldSubDoc.username}`,
-                                        });
+                                    return res.status(500).json({
+                                        status: 'failed',
+                                        reason: `Error while updating the old boss of user ${oldSubDoc.username}`,
+                                    });
                                 }
 
                                 // updating the "boss" field on a subordinate
@@ -90,12 +87,10 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                                     await newUserBossField.adjustRole();
                                 } else {
                                     logger.error(`Error while updating user ${oldSubDoc.username} with a new boss`);
-                                    return res
-                                        .status(500)
-                                        .json({
-                                            status: 'failed',
-                                            reason: `Error while updating user ${oldSubDoc.username} with a new boss`,
-                                        });
+                                    return res.status(500).json({
+                                        status: 'failed',
+                                        reason: `Error while updating user ${oldSubDoc.username} with a new boss`,
+                                    });
                                 }
 
                                 // updating new boss to contain a new subordinate
@@ -108,21 +103,17 @@ export const changeBoss = async (req: Request, res: Response, next: NextFunction
                                     await newBoss.adjustRole();
                                 } else {
                                     logger.error(`Error while updating new boss of user ${oldSubDoc.username}`);
-                                    return res
-                                        .status(500)
-                                        .json({
-                                            status: 'failed',
-                                            reason: `Error while updating new boss of user ${oldSubDoc.username}`,
-                                        });
+                                    return res.status(500).json({
+                                        status: 'failed',
+                                        reason: `Error while updating new boss of user ${oldSubDoc.username}`,
+                                    });
                                 }
                             } else {
                                 logger.error(`Error while looking up subordinates of ${foundCurrentBoss.username}`);
-                                return res
-                                    .status(500)
-                                    .json({
-                                        status: 'failed',
-                                        reason: `Error while looking up subordinates of the ${foundCurrentBoss.username}`,
-                                    });
+                                return res.status(500).json({
+                                    status: 'failed',
+                                    reason: `Error while looking up subordinates of the ${foundCurrentBoss.username}`,
+                                });
                             }
                         }
                     }

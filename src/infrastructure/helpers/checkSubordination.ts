@@ -1,31 +1,25 @@
-import { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { SESSION_NAME } from '../../configs/session-config';
 import { InvalidInputError } from '../../core/custom errors/InvalidInputError';
 import { User } from '../../core/entities/user.entity';
-import { IUser, userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
+import { IUser, userMongoModel } from '../tools & frameworks/user.mongo-model';
 
 export interface IEndResult {
     directSubs: mongoose.Types.ObjectId[] | null;
     boss?: IUser | null;
 }
 
-const compileSubs = async (subList: mongoose.Types.ObjectId[], allRecursiveSubs: mongoose.Types.ObjectId[]) => {
-    console.log('this is the tempList', subList);
-    // boss1 -> boss2 -> boss3 -> boss1 - boss3 cannot be a boss of boss 1 if boss3 is somewhere in the subordinate chain under boss1
+const compileSubs = async (subList: mongoose.Types.ObjectId[], allRecursiveSubs: mongoose.Types.ObjectId[]) => { // ^^ the 
+    // boss1 -> boss2 -> boss3 -> boss1 –– "boss3" cannot be a boss of "boss 1" if "boss3" is somewhere in the subordinate chain under "boss1" this would cause an infinite loop of subordination, so "allRecursiveSubs" keeps track of all the subordinates while "subList"/"tempList" only of those encountered in each iteration
     let tempList: mongoose.Types.ObjectId[] = [];
     for (let sub_id of subList) {
         const foundUser = await userMongoModel.findOne({ _id: sub_id });
 
         if (foundUser) {
-            if (!allRecursiveSubs.includes(foundUser._id)) {
-                console.log(foundUser._id, "wasn't in allRecursiveSubs, adding...");
-                allRecursiveSubs.push(foundUser._id);
-                console.log('this is the allRecursiveSubs this far', allRecursiveSubs);
+            if (!allRecursiveSubs.includes(foundUser._id)) { // ^^ the 
+                allRecursiveSubs.push(foundUser._id); // ^^ the 
             }
 
-            if (foundUser.subordinates) {
-                console.log('found subs in current user', foundUser.subordinates);
+            if (foundUser.subordinates) { // ^^ the 
                 for (let sub of foundUser.subordinates) {
                     tempList.push(sub._id);
                 }
@@ -60,16 +54,13 @@ export const checkProperSubordination = async (currentUser: Partial<User>, newBo
 
         // compile together all recursively found subordinates
         allSubs = await compileSubs(subList, allRecursiveSubs);
-        console.log('these are allSubs', allSubs);
     }
 
-    if (currentUser.boss || newBossUser) {
-        let actionBoss = currentUser.boss || newBossUser?.username;
-        console.log('this is actionBoss', actionBoss);
+    if (currentUser.boss || newBossUser) { // "if boss is specified either during the user's creation or changing of the user's boss"
+        let actionBoss = currentUser.boss || newBossUser?.username; // ^^ the "newBossUser" is only provided during the changing of the user's boss
         // check if specified boss exists
         const foundBoss = await userMongoModel.findOne({ username: actionBoss }, '-__v -password -boss');
         if (foundBoss) {
-            console.log('this is the foundBoss(you sent his username)', foundBoss.toObject());
             // check if specified boss is in recursively found subordinates
             if (allSubs.length > 0) {
                 const breakingSub = await userMongoModel.findOne({
@@ -77,15 +68,12 @@ export const checkProperSubordination = async (currentUser: Partial<User>, newBo
                     $and: [{ _id: { $in: allSubs } }],
                 });
                 if (breakingSub) {
-                    console.log('this is the breaking sub', breakingSub);
-                    console.log('sub_id === foundBoss._id HERE');
                     throw new InvalidInputError({
-                        message: `One of the subordinates down the subordination chain (${breakingSub.username}) includes specified boss(${foundBoss.username}) as a subordinate, meaning it would cause a loop of subordinate user relations - you cannot have ${foundBoss.username} be someone's boss while having ${breakingSub?.username} as that someone's subordinate`,
+                        message: `One of the subordinates down the subordination chain (${breakingSub.username}) includes specified boss(${foundBoss.username}) as a subordinate, meaning it would cause a loop of subordination - you cannot have ${foundBoss.username} be someone's boss while having ${breakingSub?.username} as that someone's subordinate`,
                         statusCode: 400,
                     });
                 }
             }
-            console.log("boss didn't match any subs(you sent them) -- good");
             // specified boss isn't found in all recursively found subordinates -- good
             endResult.boss = foundBoss;
         } else {
@@ -95,6 +83,5 @@ export const checkProperSubordination = async (currentUser: Partial<User>, newBo
             });
         }
     }
-    console.log('this is the end result', endResult);
     return endResult;
 };

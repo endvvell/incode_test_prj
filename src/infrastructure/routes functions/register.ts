@@ -1,12 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 import { createNewUserObj, logIn } from '../helpers/authHelpers';
 import { checkProperSubordination, IEndResult } from '../helpers/checkSubordination';
-import { userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
+import { userMongoModel } from '../tools & frameworks/user.mongo-model';
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // validate input data, create a model based on it
         const newUser = await createNewUserObj(req, 'register');
+        
         // check if user with duplicate data already exists in db
         const foundUser = await userMongoModel.exists({ username: newUser.username });
 

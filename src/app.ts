@@ -29,7 +29,7 @@ export const createApp = (sessionStore: Store) => {
     // ROUTERS
     app.use('/api/v1/users', usersRouter);
 
-    // Routes error handler
+    // Routers error handler
     app.use((error: Error | InvalidInputError, req: Request, res: Response, next: NextFunction) => {
         if (error instanceof InvalidInputError) {
             // logger.error(`Error while processing user's input: ${error.message}`)

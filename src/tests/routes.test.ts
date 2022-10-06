@@ -7,7 +7,7 @@ import { REDIS_OPTIONS } from '../configs/redis-config';
 import connectRedis from 'connect-redis';
 import { createApp } from '../app';
 import request from 'supertest';
-import { IUser, userMongoModel } from '../infrastructure/tools & frameworks/mongo/user.mongo-model';
+import { IUser, userMongoModel } from '../infrastructure/tools & frameworks/user.mongo-model';
 
 let app: ReturnType<typeof createApp>;
 

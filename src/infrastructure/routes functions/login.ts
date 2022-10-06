@@ -1,15 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 import { createNewUserObj, logIn } from '../helpers/authHelpers';
-import { userMongoModel } from '../tools & frameworks/mongo/user.mongo-model';
+import { userMongoModel } from '../tools & frameworks/user.mongo-model';
 
 export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userObj = await createNewUserObj(req, 'login'); // same as with "register" path, this function does the validation and if error occurs it gets caught in "app.ts" inside of the routes error handler
+        const userObj = await createNewUserObj(req, 'login');
 
         const foundUser = await userMongoModel.findOne({
             username: userObj.username,
         });
-
 
         if (!foundUser || !(await foundUser.matchesPassword(userObj.password))) {
             return res.status(404).json({
