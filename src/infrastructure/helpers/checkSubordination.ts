@@ -8,18 +8,18 @@ export interface IEndResult {
     boss?: IUser | null;
 }
 
-const compileSubs = async (subList: mongoose.Types.ObjectId[], allRecursiveSubs: mongoose.Types.ObjectId[]) => { // ^^ the 
+const compileSubs = async (subList: mongoose.Types.ObjectId[], allRecursiveSubs: mongoose.Types.ObjectId[]) => { 
     // boss1 -> boss2 -> boss3 -> boss1 –– "boss3" cannot be a boss of "boss 1" if "boss3" is somewhere in the subordinate chain under "boss1" this would cause an infinite loop of subordination, so "allRecursiveSubs" keeps track of all the subordinates while "subList"/"tempList" only of those encountered in each iteration
     let tempList: mongoose.Types.ObjectId[] = [];
     for (let sub_id of subList) {
         const foundUser = await userMongoModel.findOne({ _id: sub_id });
 
         if (foundUser) {
-            if (!allRecursiveSubs.includes(foundUser._id)) { // ^^ the 
-                allRecursiveSubs.push(foundUser._id); // ^^ the 
+            if (!allRecursiveSubs.includes(foundUser._id)) { 
+                allRecursiveSubs.push(foundUser._id); 
             }
 
-            if (foundUser.subordinates) { // ^^ the 
+            if (foundUser.subordinates) { 
                 for (let sub of foundUser.subordinates) {
                     tempList.push(sub._id);
                 }
