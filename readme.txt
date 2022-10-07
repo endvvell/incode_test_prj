@@ -6,7 +6,7 @@
 
 
 –– To run the tests:
-(Visual Studio seems to apply its own formatting when providing a source directory for the docker file. So I'd advise to cd into the "dockerfiles" folder and run these commands from there:)
+(Visual Studio seems to apply its own formatting when providing a source directory for the dockerfile. So I'd advise to cd into the "dockerfiles" folder and run these commands from there:)
 
 $ docker build -t mongo_solo -f mongodb.dockerfile .
 
@@ -37,7 +37,7 @@ but they test the basic functionality well)
     "lastName":"<some_string>",         (optional)
     "firstName":"<some_string>",        (optional)
     "boss": "<some_username>",          (optional - if the specified boss exists and doesn't cause subordination loops with 
-                                            the specified "subordinates" then this value is assigned as this new user's boss)
+                                        the specified "subordinates" then this value is assigned as this new user's boss)
 	"subordinates": ["<some_username>", "<some_username>", "<some_username>"],      (optional if user's role is "admin",
                                                                                     required if the user's role is "boss",
                                                                                     forbidden if user's role is "regular")
@@ -61,12 +61,12 @@ but they test the basic functionality well)
 * POST /api/v1/users/change-boss :
 {
     "newboss":"<some_username>",            (any user that wouldn't cause a subordination loop when assigned as a boss to the specified "subordinates")
-    "subordinates": ["<some_username>", "<some_username>"]      (any user that is a subordinate of the logged in user)
+    "subordinates": ["<some_username>", "<some_username>"]      (any user that is a subordinate of the logged-in user making a request)
 }
 
 
 * GET /api/v1/users/get-users : 
-Returns a result appropriate to the role of the logged in user making a request.
+Returns a result appropriate to the role of the logged-in user making a request.
 
 
 
@@ -86,4 +86,4 @@ The primary folders are ./src/core and ./src/infrastructure
 
 ./src/core – contains the code that can be thought of as independent of any frameworks - part of the core business logic - although I've decided to only implement the entities layer, so you can think of the "use cases" layer as being open, since the next layer up are controllers and frameworks molded together.
 
-./src/infrastructure – contains all the app's "logic" and routing.
+./src/infrastructure – contains all the app's logic and routing.
