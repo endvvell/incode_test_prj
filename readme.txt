@@ -1,7 +1,7 @@
 
 –– To run the app:
-(compile) $ tsc -w
 (install) $ npm install
+(compile) $ tsc
 (run) $ docker-compose build && docker-compose up
 
 
