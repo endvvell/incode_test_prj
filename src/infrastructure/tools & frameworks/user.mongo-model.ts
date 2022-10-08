@@ -113,8 +113,7 @@ userMongoSchema.methods.populateAllSubs = async function (this: IUser) {
     let rootId: mongoose.Types.ObjectId = this._id;
     async function autoPopulate(parent: IUser) {
         if (parent.subordinates && parent.subordinates.length !== 0) {
-            for (let sub of parent.subordinates!) {
-                // "!" - because "this.subordinates" above already checks if the "subordinates" list is empty, so by this point it is not.
+            for (let sub of parent.subordinates) {
                 // the "if" here is to avoid infinite recursion in case "boss1 > boss2 > boss3 > boss1", which should never(ideally) be a case in the first place due to "checkSubsExist" function implemented in the "change-boss" and "register" paths, but in case it is ever to occur this "if" will prevent it. Could also log such a case to errors.log, but that would introduce another O(n) operation in an already expensive function. So, considering that this edge-case is never supposed to occur in the first place I won't place a logger here.
                 if (sub._id.toString() !== parent._id.toString() && sub._id.toString() !== rootId.toString()) {
                     const downsub = await userMongoModel.findOne<IUser>(
